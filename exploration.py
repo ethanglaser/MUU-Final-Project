@@ -81,13 +81,8 @@ def get_activity(x_dict, time_interval, start_hour, end_hour):
 
     return activity
 
-'''
-Martin function here
-'''
-
 def create_tm(capacity, activity):
     tm = n_trans = np.zeros([capacity+1,capacity+1])
-    current_state = 0
 
     freq = {}
     for delta in activity:
@@ -113,20 +108,37 @@ def create_station_markov(df, station_id, start_hour, end_hour, time_interval, c
     results, times = get_results_times(df, station_id)
     my_dict = create_dict(results, times)
     activity = get_activity(my_dict, time_interval, start_hour, end_hour)
-    # martin
     markov = create_tm(capacity, activity)
+    plt.figure(figsize=[20, 20])
+    plt.title("Heatmap for " + str(station_id) + " from " + str(start_hour) + " to " + str(end_hour))
+    sns.heatmap(markov)
+    plt.savefig('Figures/heatmaps/map' + str(station_id) + '_' + str(start_hour) + '_' + str(end_hour) + '.svg')
     return markov
 
 if __name__ == '__main__':
     df = pd.read_csv('Data/202107-citibike-tripdata.csv')
 
-    station_id = 5980.07
+    station_id1 = 6140.05
+    station_id2 = 5980.07
+    station_id3 = 5329.03
+
+    capacity1 = 50
+    capacity2 = 66
+    capacity3 = 31
+
     capacity = 10
-    start_hour = 8
-    end_hour = 12
+    start_hour_morn = 8
+    end_hour_morn = 12
+    start_hour_even = 16
+    end_hour_even = 20
     time_interval = 5
     df = df_prep(df)
-    m = create_station_markov(df, station_id, start_hour, end_hour, time_interval, capacity)
+    m = create_station_markov(df, station_id1, start_hour_morn, end_hour_morn, time_interval, capacity1)
+    m = create_station_markov(df, station_id1, start_hour_even, end_hour_even, time_interval, capacity1)
+    m = create_station_markov(df, station_id2, start_hour_morn, end_hour_morn, time_interval, capacity2)
+    m = create_station_markov(df, station_id2, start_hour_even, end_hour_even, time_interval, capacity2)
+    m = create_station_markov(df, station_id3, start_hour_morn, end_hour_morn, time_interval, capacity3)
+    m = create_station_markov(df, station_id3, start_hour_even, end_hour_even, time_interval, capacity3)
 
     print(m)
 
