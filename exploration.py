@@ -7,13 +7,17 @@ from collections import Counter
 
 
 def df_prep(df):
+    # Filter input data, ensure desired data types, drop weekends
     df = df[['ended_at', 'started_at', 'start_station_id', 'end_station_id']]
     df['ended_at'] = pd.to_datetime(df['ended_at'])
     df['started_at'] = pd.to_datetime(df['started_at'])
+    df['start_station_id'] = pd.to_numeric(df['start_station_id'], errors='coerce')
+    df['end_station_id'] = pd.to_numeric(df['end_station_id'], errors='coerce')
     df = df[(df['started_at'].dt.weekday != 5) & (df['started_at'].dt.weekday != 6)]
     return df
 
 def get_results_times(df, station_id):
+    # For a given station, get the time and outcome of every row in the data corresponding to that station
     df = df[(df['start_station_id'] == station_id) | (df['end_station_id'] == station_id)]
 
     df_start = df[df['start_station_id'] == station_id]
@@ -30,6 +34,7 @@ def get_results_times(df, station_id):
     return df_all['result'].tolist(),  df_all['time'].tolist()
 
 def create_dict(results, times):
+    #creates dictionary with keys for each day and values including the events, counts (cumulation of events), and times
     current_day = ''
     min_index = 0
     x = []
@@ -48,7 +53,6 @@ def create_dict(results, times):
         x_dict[current_day]['events'].append(results[i])
         x_dict[current_day]['times'].append(times[i])
         x.append(sum(results[min_index:i+1]))
-    print([x_dict[key]['range'] for key in x_dict])
     #plt.figure()
     #plt.plot(times,x)
     #plt.savefig('results2')
@@ -70,6 +74,7 @@ def plot_everyday(start_hour, end_hour, data_dict):
 
 
 def get_activity(x_dict, time_interval, start_hour, end_hour):
+    # for every day calculate sum of events within time interval over the course of start_hour to end_hour
     activity = []
     for current_interval in range(start_hour * 60, end_hour * 60, time_interval):
         for key in x_dict:
@@ -82,6 +87,7 @@ def get_activity(x_dict, time_interval, start_hour, end_hour):
     return activity
 
 def create_tm(capacity, activity):
+    # create transition matrix
     tm = n_trans = np.zeros([capacity+1,capacity+1])
 
     freq = {}
@@ -90,8 +96,9 @@ def create_tm(capacity, activity):
 
     for state in range(capacity+1):
         for delta in freq:
+            delta = int(delta)
             if delta < 0 and -delta <= state:
-                n_trans[state,state+delta] = freq[delta]
+                n_trans[state,int(state+delta)] = freq[delta]
             elif delta > 0 and delta + state <= capacity:
                 n_trans[state,state+delta] = freq[delta]
         n_trans[state,state] = freq[0]
@@ -103,8 +110,8 @@ def create_tm(capacity, activity):
 
     return tm
 
-
 def get_stationary_distribution(markov):
+    # convert markov into stationary distribution
     dim = np.shape(markov)[0]
     A = (markov - np.identity(dim)).T
     A = np.append(A, np.ones([1, dim]), axis=0)
@@ -112,10 +119,23 @@ def get_stationary_distribution(markov):
     B[-1] = 1
     return np.linalg.lstsq(A, B)[0]
 
+def get_lra(stationary):
+    # determine long run average from stationary distribution
+    long_run_average = 0
+    for index, item in enumerate(stationary):
+        long_run_average += index*item
+    return long_run_average
+
 def create_station_markov(df, station_id, start_hour, end_hour, time_interval, capacity):
-    results, times = get_results_times(df, station_id)
-    my_dict = create_dict(results, times)
-    activity = get_activity(my_dict, time_interval, start_hour, end_hour)
+    # go through entire process to get stationary distribution and long run average for given station, time frame, interval by reading in processed file or calling above functions    
+
+    #results, times = get_results_times(df, station_id)
+    #my_dict = create_dict(results, times)
+    #activity = get_activity(my_dict, time_interval, start_hour, end_hour)
+    processed = pd.read_csv('processed/processed_station_' + ''.join(str(station_id).split('.')) + '_timestep_' + str(time_interval) + '.csv')
+    processed['hour'] = pd.to_datetime(processed['time']).dt.strftime('%H').astype(int)
+    processed = processed[(processed['hour'] >= start_hour) & (processed['hour'] < end_hour)]
+    activity = processed['total'].tolist()
     markov = create_tm(capacity, activity)
 
     # save as csv
@@ -123,23 +143,24 @@ def create_station_markov(df, station_id, start_hour, end_hour, time_interval, c
     if start_hour >= 12:
         time_frame = 'evening'
 
-    #np.savetxt('Stationary_Distributions10/' + str(station_id) + '_' + time_frame + ".csv", markov, delimiter=",")
-
-
     # save as heatmap
     plt.figure(figsize=[20, 20])
     plt.title("Heatmap for " + str(station_id) + " from " + str(start_hour) + " to " + str(end_hour))
     sns.heatmap(markov)
-    plt.savefig('Figures/heatmaps10/map' + str(station_id) + '_' + time_frame + '.svg')
+    plt.savefig('heatmaps/' + str(station_id) + '_' + time_frame + '_' + str(time_interval) + '.svg')
 
     stationary = get_stationary_distribution(markov)
-    print(stationary)
-    print(np.sum(stationary))
-    return stationary
+    stat_df = pd.DataFrame(stationary, columns = ['Stationary Distribution'])
+    stat_df.to_csv('stationary_distributions/' + str(station_id) + '_' + time_frame + '_' + str(time_interval) + '.csv')
+    #np.savetxt('stationary_distributions/' + str(station_id) + '_' + time_frame + '_' + str(time_interval) + ".csv", stationary, delimiter=",")
+    expectation = get_lra(stationary)
+    print("Expectation", station_id, capacity, time_frame, time_interval, expectation)
+    return stationary, expectation
 
 if __name__ == '__main__':
     df = pd.read_csv('Data/202107-citibike-tripdata.csv')
 
+    # initialize 3 stations of interest with their capacities
     station_id1 = 6140.05
     station_id2 = 5980.07
     station_id3 = 5329.03
@@ -161,9 +182,3 @@ if __name__ == '__main__':
     m = create_station_markov(df, station_id2, start_hour_even, end_hour_even, time_interval, capacity2)
     m = create_station_markov(df, station_id3, start_hour_morn, end_hour_morn, time_interval, capacity3)
     m = create_station_markov(df, station_id3, start_hour_even, end_hour_even, time_interval, capacity3)
-
-    # print(m)
-
-    plt.figure(figsize=[20, 20])
-    sns.heatmap(m)
-    plt.savefig('colormap2.svg')
