@@ -109,10 +109,20 @@ def create_station_markov(df, station_id, start_hour, end_hour, time_interval, c
     my_dict = create_dict(results, times)
     activity = get_activity(my_dict, time_interval, start_hour, end_hour)
     markov = create_tm(capacity, activity)
+
+    # save as csv
+    time_frame = 'morning'
+    if start_hour >= 12:
+        time_frame = 'evening'
+
+    np.savetxt('Stationary_Distributions10/' + str(station_id) + '_' + time_frame + ".csv", markov, delimiter=",")
+
+
+    # save as heatmap
     plt.figure(figsize=[20, 20])
     plt.title("Heatmap for " + str(station_id) + " from " + str(start_hour) + " to " + str(end_hour))
     sns.heatmap(markov)
-    plt.savefig('Figures/heatmaps/map' + str(station_id) + '_' + str(start_hour) + '_' + str(end_hour) + '.svg')
+    plt.savefig('Figures/heatmaps10/map' + str(station_id) + '_' + str(start_hour) + '_' + str(end_hour) + '.svg')
     return markov
 
 if __name__ == '__main__':
@@ -131,7 +141,7 @@ if __name__ == '__main__':
     end_hour_morn = 12
     start_hour_even = 16
     end_hour_even = 20
-    time_interval = 5
+    time_interval = 10
     df = df_prep(df)
     m = create_station_markov(df, station_id1, start_hour_morn, end_hour_morn, time_interval, capacity1)
     m = create_station_markov(df, station_id1, start_hour_even, end_hour_even, time_interval, capacity1)
