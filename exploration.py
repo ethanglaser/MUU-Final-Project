@@ -1,6 +1,8 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import datetime
+import numpy as np
+import seaborn as sns
 from collections import Counter
 
 
@@ -83,24 +85,51 @@ def get_activity(x_dict, time_interval, start_hour, end_hour):
 Martin function here
 '''
 
+def create_tm(capacity, activity):
+    tm = n_trans = np.zeros([capacity+1,capacity+1])
+    current_state = 0
+
+    freq = {}
+    for delta in activity:
+        freq[delta] = activity.count(delta)
+
+    for state in range(capacity+1):
+        for delta in freq:
+            if delta < 0 and -delta <= state:
+                n_trans[state,state+delta] = freq[delta]
+            elif delta > 0 and delta + state <= capacity:
+                n_trans[state,state+delta] = freq[delta]
+        n_trans[state,state] = freq[0]
+
+    for state in range(capacity+1):
+        row_sum = np.sum(n_trans[state,:])
+        for end_state in range(capacity+1):
+            tm[state,end_state] = n_trans[state,end_state]/row_sum
+
+    return tm
+
 
 def create_station_markov(df, station_id, start_hour, end_hour, time_interval, capacity):
     results, times = get_results_times(df, station_id)
     my_dict = create_dict(results, times)
     activity = get_activity(my_dict, time_interval, start_hour, end_hour)
     # martin
-    # markov = martin_function(capacity, activity)
-    # return markov
+    markov = create_tm(capacity, activity)
+    return markov
 
 if __name__ == '__main__':
     df = pd.read_csv('Data/202107-citibike-tripdata.csv')
 
     station_id = 5980.07
-    capacity = 90
+    capacity = 10
     start_hour = 8
     end_hour = 12
     time_interval = 5
     df = df_prep(df)
-    create_station_markov(df, station_id, start_hour, end_hour, time_interval, capacity)
+    m = create_station_markov(df, station_id, start_hour, end_hour, time_interval, capacity)
 
+    print(m)
 
+    plt.figure(figsize=[20, 20])
+    sns.heatmap(m)
+    plt.savefig('colormap2.svg')
