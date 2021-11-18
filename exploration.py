@@ -104,6 +104,12 @@ def create_tm(capacity, activity):
     return tm
 
 
+def get_stationary_distribution(markov):
+    '''
+    martin code here
+    '''
+    return
+
 def create_station_markov(df, station_id, start_hour, end_hour, time_interval, capacity):
     results, times = get_results_times(df, station_id)
     my_dict = create_dict(results, times)
@@ -115,15 +121,17 @@ def create_station_markov(df, station_id, start_hour, end_hour, time_interval, c
     if start_hour >= 12:
         time_frame = 'evening'
 
-    np.savetxt('Stationary_Distributions10/' + str(station_id) + '_' + time_frame + ".csv", markov, delimiter=",")
+    #np.savetxt('Stationary_Distributions10/' + str(station_id) + '_' + time_frame + ".csv", markov, delimiter=",")
 
 
     # save as heatmap
     plt.figure(figsize=[20, 20])
     plt.title("Heatmap for " + str(station_id) + " from " + str(start_hour) + " to " + str(end_hour))
     sns.heatmap(markov)
-    plt.savefig('Figures/heatmaps10/map' + str(station_id) + '_' + str(start_hour) + '_' + str(end_hour) + '.svg')
-    return markov
+    plt.savefig('Figures/heatmaps10/map' + str(station_id) + '_' + time_frame + '.svg')
+
+    stationary = get_stationary_distribution(markov)
+    return stationary
 
 if __name__ == '__main__':
     df = pd.read_csv('Data/202107-citibike-tripdata.csv')
