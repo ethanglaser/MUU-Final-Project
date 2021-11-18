@@ -106,7 +106,7 @@ def create_tm(capacity, activity):
 
 def get_stationary_distribution(markov):
     dim = np.shape(markov)[0]
-    A = (markov - np.identity[dim]).T
+    A = (markov - np.identity(dim)).T
     A = np.append(A, np.ones([1, dim]), axis=0)
     B = np.zeros(dim + 1)
     B[-1] = 1
@@ -133,6 +133,8 @@ def create_station_markov(df, station_id, start_hour, end_hour, time_interval, c
     plt.savefig('Figures/heatmaps10/map' + str(station_id) + '_' + time_frame + '.svg')
 
     stationary = get_stationary_distribution(markov)
+    print(stationary)
+    print(np.sum(stationary))
     return stationary
 
 if __name__ == '__main__':
@@ -160,7 +162,7 @@ if __name__ == '__main__':
     m = create_station_markov(df, station_id3, start_hour_morn, end_hour_morn, time_interval, capacity3)
     m = create_station_markov(df, station_id3, start_hour_even, end_hour_even, time_interval, capacity3)
 
-    print(m)
+    # print(m)
 
     plt.figure(figsize=[20, 20])
     sns.heatmap(m)
