@@ -105,10 +105,12 @@ def create_tm(capacity, activity):
 
 
 def get_stationary_distribution(markov):
-    '''
-    martin code here
-    '''
-    return
+    dim = np.shape(markov)[0]
+    A = (markov - np.identity[dim]).T
+    A = np.append(A, np.ones([1, dim]), axis=0)
+    B = np.zeros(dim + 1)
+    B[-1] = 1
+    return np.linalg.lstsq(A, B)[0]
 
 def create_station_markov(df, station_id, start_hour, end_hour, time_interval, capacity):
     results, times = get_results_times(df, station_id)
