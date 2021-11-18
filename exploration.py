@@ -1,5 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import datetime
+from collections import Counter
 
 df = pd.read_csv('Data/202107-citibike-tripdata.csv')
 df = df[['ended_at', 'started_at', 'start_station_id', 'end_station_id']]
@@ -26,7 +28,6 @@ current_day = ''
 min_index = 0
 x = []
 x_dict = {}
-print(results)
 for i in range(len(results)):
     if times[i].day != current_day:
         if current_day != '':
@@ -60,13 +61,25 @@ def plot_everyday(start_hour, end_hour, data_dict):
     plt.ylabel('Relative capacity (0 at 00 hrs)')
     plt.savefig('Figures/Days/everyday' + str(start_hour) + '-' + str(end_hour))
 
-'''
+
 def get_activity(x_dict, time_interval, start_hour, end_hour):
     activity = []
-    for current_interval in range(start_hour, end_hour, time_interval):
-        activity.append(sum([x_dict[key]['counts'][i] for key in x_dict for i in range(len(x_dict[key]['counts'])) if x_dict[key]['times'][i].hour == current_interval]))
-'''
+    for current_interval in range(start_hour * 60, end_hour * 60, time_interval):
+        for key in x_dict:
+            current_activity = 0
+            for i in range(len(x_dict[key]['times'])):
+                if x_dict[key]['times'][i].time() >= datetime.time(current_interval // 60, current_interval % 60) and x_dict[key]['times'][i].time() < datetime.time((current_interval + time_interval) // 60, (current_interval + time_interval) % 60):
+                    current_activity += x_dict[key]['events'][i]
+            activity.append(current_activity)
+
+    return activity
+
 # plot_everyday(6, 10, x_dict)
 # plot_everyday(6, 11, x_dict)
 # plot_everyday(12, 20, x_dict)
 plot_everyday(17, 23, x_dict)
+
+activity = get_activity(x_dict, 5, 17, 23)
+plt.figure()
+plt.hist(activity)
+plt.savefig('Figures/activity_hist')
