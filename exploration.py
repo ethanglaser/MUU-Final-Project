@@ -6,11 +6,8 @@ df = df[['ended_at', 'started_at', 'start_station_id', 'end_station_id']]
 df['ended_at'] = pd.to_datetime(df['ended_at'])
 df['started_at'] = pd.to_datetime(df['started_at'])
 #df['weekday'] = df['started_at'].dt.weekday
-print(len(df.index))
 df = df[(df['started_at'].dt.weekday != 5) & (df['started_at'].dt.weekday != 6)]
-print(len(df.index))
 df = df[(df['start_station_id'] == 5980.07) | (df['end_station_id'] == 5980.07)]
-print(len(df.index))
 
 df_start = df[df['start_station_id'] == 5980.07]
 df_end = df[df['end_station_id'] == 5980.07]
@@ -21,12 +18,55 @@ df_end['time'] = df_end['ended_at']
 df_start = df_start[['result', 'time']]
 df_end = df_end[['result', 'time']]
 df_all = pd.concat([df_start, df_end])
-print(len(df_all.index))
 
 df_all = df_all.sort_values(by=['time'])
-results = df_all['result']
-x = [sum(results[:i+1]) for i in range(len(results))]
+results = df_all['result'].tolist()
+times = df_all['time'].tolist()
+current_day = ''
+min_index = 0
+x = []
+x_dict = {}
+print(results)
+for i in range(len(results)):
+    if times[i].day != current_day:
+        if current_day != '':
+            x_dict[current_day]['range'] = max(x_dict[current_day]['counts']) - min(x_dict[current_day]['counts'])
+            plt.figure()
+            plt.plot(times[min_index:i], x[min_index:i])
+            plt.savefig('Figures/Days/day' + str(current_day))
+        current_day = times[i].day
+        min_index = i
+        x_dict[current_day] = {'counts': [], 'times': [], 'events': [], 'range': 0}
+    x_dict[current_day]['counts'].append(sum(results[min_index:i+1]))
+    x_dict[current_day]['events'].append(results[i])
+    x_dict[current_day]['times'].append(times[i])
+    x.append(sum(results[min_index:i+1]))
+print([x_dict[key]['range'] for key in x_dict])
 plt.figure()
-plt.plot(x)
-plt.savefig('results')
+plt.plot(times,x)
+plt.savefig('results2')
 
+def plot_everyday(start_hour, end_hour, data_dict):
+    plt.figure()
+    for key in data_dict:
+        x = []
+        y = []
+        for i in range(len(data_dict[key]['times'])):
+            if data_dict[key]['times'][i].hour >= start_hour and data_dict[key]['times'][i].hour < end_hour:
+                x.append(data_dict[key]['times'][i].hour + data_dict[key]['times'][i].minute / 60)
+                y.append(data_dict[key]['counts'][i])
+        plt.plot(x, y)
+    plt.xlabel('Time (hours)')
+    plt.ylabel('Relative capacity (0 at 00 hrs)')
+    plt.savefig('Figures/Days/everyday' + str(start_hour) + '-' + str(end_hour))
+
+'''
+def get_activity(x_dict, time_interval, start_hour, end_hour):
+    activity = []
+    for current_interval in range(start_hour, end_hour, time_interval):
+        activity.append(sum([x_dict[key]['counts'][i] for key in x_dict for i in range(len(x_dict[key]['counts'])) if x_dict[key]['times'][i].hour == current_interval]))
+'''
+# plot_everyday(6, 10, x_dict)
+# plot_everyday(6, 11, x_dict)
+# plot_everyday(12, 20, x_dict)
+plot_everyday(17, 23, x_dict)
