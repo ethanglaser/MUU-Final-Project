@@ -44,7 +44,7 @@ def create_dict(results, times):
             if current_day != '':
                 x_dict[current_day]['range'] = max(x_dict[current_day]['counts']) - min(x_dict[current_day]['counts'])
                 plt.figure()
-                plt.plot(times[min_index:i], x[min_index:i])
+                plt.plot([t.hour + t.minute / 60.0 for t in times[min_index:i]], x[min_index:i])
                 plt.savefig('Figures/Days/day' + str(current_day))
             current_day = times[i].day
             min_index = i
@@ -152,10 +152,17 @@ def create_station_markov(df, station_id, start_hour, end_hour, time_interval, c
     stationary = get_stationary_distribution(markov)
     stat_df = pd.DataFrame(stationary, columns = ['Stationary Distribution'])
     stat_df.to_csv('stationary_distributions/' + str(station_id) + '_' + time_frame + '_' + str(time_interval) + '.csv')
+    plt.figure()
+    plt.title("Stationary distribution for station " + str(station_id) + " in " + time_frame)
+    plt.xlabel("Available bikes")
+    plt.xlabel("Likelihood of outcome (stationary distribution value)")
+    plt.scatter(stat_df.index.values, stat_df['Stationary Distribution'].values)
+    plt.savefig('stationary_distributions/' + str(station_id) + '_' + time_frame + '_' + str(time_interval) + '.png')
     #np.savetxt('stationary_distributions/' + str(station_id) + '_' + time_frame + '_' + str(time_interval) + ".csv", stationary, delimiter=",")
     expectation = get_lra(stationary)
     print("Expectation", station_id, capacity, time_frame, time_interval, expectation)
-    return stationary, expectation
+    #return stationary, expectation
+    return {'station_id': station_id, 'capacity': capacity, 'time_frame': time_frame, 'time_interval': time_interval, 'expectation': expectation}
 
 if __name__ == '__main__':
     df = pd.read_csv('Data/202107-citibike-tripdata.csv')
@@ -169,16 +176,19 @@ if __name__ == '__main__':
     capacity2 = 66
     capacity3 = 31
 
-    capacity = 10
     start_hour_morn = 8
     end_hour_morn = 12
     start_hour_even = 16
     end_hour_even = 20
     time_interval = 10
     df = df_prep(df)
-    m = create_station_markov(df, station_id1, start_hour_morn, end_hour_morn, time_interval, capacity1)
-    m = create_station_markov(df, station_id1, start_hour_even, end_hour_even, time_interval, capacity1)
-    m = create_station_markov(df, station_id2, start_hour_morn, end_hour_morn, time_interval, capacity2)
-    m = create_station_markov(df, station_id2, start_hour_even, end_hour_even, time_interval, capacity2)
-    m = create_station_markov(df, station_id3, start_hour_morn, end_hour_morn, time_interval, capacity3)
-    m = create_station_markov(df, station_id3, start_hour_even, end_hour_even, time_interval, capacity3)
+    pre_df = []
+    for time_interval in [5, 10]:
+        pre_df.append(create_station_markov(df, station_id1, start_hour_morn, end_hour_morn, time_interval, capacity1))
+        pre_df.append(create_station_markov(df, station_id1, start_hour_even, end_hour_even, time_interval, capacity1))
+        pre_df.append(create_station_markov(df, station_id2, start_hour_morn, end_hour_morn, time_interval, capacity2))
+        pre_df.append(create_station_markov(df, station_id2, start_hour_even, end_hour_even, time_interval, capacity2))
+        pre_df.append(create_station_markov(df, station_id3, start_hour_morn, end_hour_morn, time_interval, capacity3))
+        pre_df.append(create_station_markov(df, station_id3, start_hour_even, end_hour_even, time_interval, capacity3))
+
+    pd.DataFrame(pre_df).to_csv('results.csv')
