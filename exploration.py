@@ -155,7 +155,7 @@ def create_station_markov(df, station_id, start_hour, end_hour, time_interval, c
     plt.figure()
     plt.title("Stationary distribution for station " + str(station_id) + " in " + time_frame)
     plt.xlabel("Available bikes")
-    plt.xlabel("Likelihood of outcome (stationary distribution value)")
+    plt.ylabel("Likelihood of outcome (stationary distribution value)")
     plt.scatter(stat_df.index.values, stat_df['Stationary Distribution'].values)
     plt.savefig('stationary_distributions/' + str(station_id) + '_' + time_frame + '_' + str(time_interval) + '.png')
     #np.savetxt('stationary_distributions/' + str(station_id) + '_' + time_frame + '_' + str(time_interval) + ".csv", stationary, delimiter=",")
